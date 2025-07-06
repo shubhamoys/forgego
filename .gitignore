@@ -1,0 +1,39 @@
+# Binaries and compiled files
+*.exe
+*.out
+*.o
+*.a
+*.so
+*.dll
+*.test
+
+# Dependency and build directories
+/bin/
+/obj/
+/vendor/
+/dist/
+/logs/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Environment variables and config files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+config.yaml
+config.json
+
+# IDE and editor settings (optional)
+.vscode/
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
