@@ -9,10 +9,10 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "forgego",
-	Short: "ForgeGo - A powerful Go project scaffolding tool",
-	Long: `ForgeGo is a CLI tool that helps developers quickly scaffold 
-production-ready Go projects for different purposes including 
-RESTful API backends, CLI applications, and Go libraries.`,
+	Short: "ForgeGo is a CLI tool for scaffolding Go projects",
+	Long: `ForgeGo is a developer-friendly CLI tool to bootstrap production-ready Go projects,
+including RESTful APIs, CLI applications, and libraries, with idiomatic folder structures
+and optional configurations like Docker and Git.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

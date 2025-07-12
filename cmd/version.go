@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/shubhamoys/forgego/internal/constants"
+	"github.com/shubhamoys/forgego/internal/pkg/constants"
 	"github.com/spf13/cobra"
 )
 
