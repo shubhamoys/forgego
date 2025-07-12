@@ -1,0 +1,45 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    {{- if eq .Database "mongodb" }}
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+    {{- end }}
+    {{- if eq .Database "postgresql" }}
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_URI=postgres://user:password@postgres:5432/dbname?sslmode=disable
+    {{- end }}
+  {{- if eq .Database "mongodb" }}
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+  {{- end }}
+  {{- if eq .Database "postgresql" }}
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=dbname
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  {{- end }}
+volumes:
+  {{- if eq .Database "mongodb" }}
+  mongodb_data:
+  {{- end }}
+  {{- if eq .Database "postgresql" }}
+  postgres_data:
+  {{- end }}

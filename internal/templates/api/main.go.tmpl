@@ -1,0 +1,50 @@
+package main
+
+import (
+	{{- if eq .Database "mongodb" }}
+	"context"
+	{{- end }}
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/gorilla/mux"
+	"{{.PackageName}}/internal/config"
+	"{{.PackageName}}/internal/handlers"
+	{{- if or (eq .Database "mongodb") (eq .Database "postgresql") }}
+	"{{.PackageName}}/internal/db"
+	{{- if eq .Database "postgresql" }}
+	_ "github.com/lib/pq"
+	{{- end }}
+	{{- end }}
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	{{- if or (eq .Database "mongodb") (eq .Database "postgresql") }}
+	{{- if eq .Database "mongodb" }}
+	client, err := db.ConnectMongoDB(cfg)
+	{{- else }}
+	client, err := db.ConnectPostgreSQL(cfg)
+	{{- end }}
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	{{- if eq .Database "mongodb" }}
+	defer client.Disconnect(context.Background())
+	{{- else }}
+	defer client.Close()
+	{{- end }}
+	{{- end }}
+
+	r := mux.NewRouter()
+	r.HandleFunc("/api/health", handlers.HealthCheck).Methods("GET")
+
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	log.Printf("Starting server on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, r))
+}

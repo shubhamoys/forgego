@@ -1,0 +1,35 @@
+package db
+
+import (
+	{{- if eq .Database "mongodb" }}
+	"context"
+	"{{.PackageName}}/internal/config"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	{{- end }}
+	{{- if eq .Database "postgresql" }}
+	"{{.PackageName}}/internal/config"
+	"database/sql"
+	_ "github.com/lib/pq"
+	{{- end }}
+)
+
+{{- if eq .Database "mongodb" }}
+func ConnectMongoDB(cfg *config.Config) (*mongo.Client, error) {
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoDBURI))
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+{{- end }}
+
+{{- if eq .Database "postgresql" }}
+func ConnectPostgreSQL(cfg *config.Config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cfg.PostgresURI)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+{{- end }}

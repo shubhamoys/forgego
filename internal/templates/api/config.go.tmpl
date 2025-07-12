@@ -1,0 +1,32 @@
+package config
+
+import (
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	Port        string
+	{{- if eq .Database "mongodb" }}
+	MongoDBURI  string
+	{{- end }}
+	{{- if eq .Database "postgresql" }}
+	PostgresURI string
+	{{- end }}
+}
+
+func Load() (*Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{
+		Port:       "8080",
+		{{- if eq .Database "mongodb" }}
+		MongoDBURI: "mongodb://localhost:27017",
+		{{- end }}
+		{{- if eq .Database "postgresql" }}
+		PostgresURI: "postgres://user:password@localhost:5432/dbname?sslmode=disable",
+		{{- end }}
+	}, nil
+}
