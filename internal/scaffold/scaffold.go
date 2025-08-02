@@ -20,22 +20,9 @@ func ScaffoldProject(config *prompts.ProjectConfig) error {
 		return err
 	}
 
-	// Generate folder structure based on project type
-	switch config.ProjectType {
-	case constants.ProjectTypeAPI:
-		if err := scaffoldAPI(projectDir, config); err != nil {
-			return err
-		}
-	case constants.ProjectTypeCLI:
-		if err := scaffoldCLI(projectDir, config); err != nil {
-			return err
-		}
-	case constants.ProjectTypeLibrary:
-		if err := scaffoldLibrary(projectDir, config); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unsupported project type: %s", config.ProjectType)
+	// Generate folder structure for API project
+	if err := scaffoldAPI(projectDir, config); err != nil {
+		return err
 	}
 
 	// Generate go.mod and go.sum
@@ -98,8 +85,8 @@ func scaffoldAPI(projectDir string, config *prompts.ProjectConfig) error {
 		}
 	}
 
-	// Write Dockerfile if database is selected
-	if config.Database != constants.DatabaseNone {
+	// Write Docker files if requested
+	if config.IncludeDocker {
 		dockerfileContent := fmt.Sprintf(`FROM golang:%s
 WORKDIR /app
 COPY go.mod go.sum .
@@ -117,29 +104,6 @@ CMD ["./%s"]
 		if err := renderTemplate("api/docker-compose.yml.tmpl", filepath.Join(projectDir, "docker-compose.yml"), config); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func scaffoldCLI(projectDir string, config *prompts.ProjectConfig) error {
-	// Create CLI-specific structure
-	if err := utils.CreateDir(filepath.Join(projectDir, "cmd", config.ProjectName)); err != nil {
-		return err
-	}
-
-	// Write main.go
-	if err := renderTemplate("cli/main.go.tmpl", filepath.Join(projectDir, "cmd", config.ProjectName, "main.go"), config); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func scaffoldLibrary(projectDir string, config *prompts.ProjectConfig) error {
-	// Write main library file
-	if err := renderTemplate("lib/lib.go.tmpl", filepath.Join(projectDir, fmt.Sprintf("%s.go", config.ProjectName)), config); err != nil {
-		return err
 	}
 
 	return nil
@@ -175,20 +139,15 @@ func generateGoSum(projectDir string, config *prompts.ProjectConfig) error {
 		return fmt.Errorf("failed to run 'go mod init %s' in %s: %v\nOutput: %s", config.PackageName, projectDir, err, string(output))
 	}
 
-	// Add dependencies based on project type and database
-	var cmds [][]string
-	if config.ProjectType == constants.ProjectTypeAPI {
-		cmds = append(cmds,
-			[]string{"go", "get", "github.com/gorilla/mux"},
-			[]string{"go", "get", "github.com/joho/godotenv"},
-		)
-		if config.Database == constants.DatabaseMongoDB {
-			cmds = append(cmds, []string{"go", "get", "go.mongodb.org/mongo-driver/mongo"})
-		} else if config.Database == constants.DatabasePostgreSQL {
-			cmds = append(cmds, []string{"go", "get", "github.com/lib/pq"})
-		}
-	} else if config.ProjectType == constants.ProjectTypeCLI {
-		cmds = append(cmds, []string{"go", "get", "github.com/spf13/cobra"})
+	// Add API dependencies
+	cmds := [][]string{
+		{"go", "get", "github.com/gorilla/mux"},
+		{"go", "get", "github.com/joho/godotenv"},
+	}
+	if config.Database == constants.DatabaseMongoDB {
+		cmds = append(cmds, []string{"go", "get", "go.mongodb.org/mongo-driver/mongo"})
+	} else if config.Database == constants.DatabasePostgreSQL {
+		cmds = append(cmds, []string{"go", "get", "github.com/lib/pq"})
 	}
 
 	// Run go get commands

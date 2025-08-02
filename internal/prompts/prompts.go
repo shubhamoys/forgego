@@ -12,12 +12,13 @@ import (
 )
 
 type ProjectConfig struct {
-	ProjectType string
-	ProjectName string
-	PackageName string
-	InitGit     bool
-	Database    string
-	GoVersion   string
+	ProjectType   string
+	ProjectName   string
+	PackageName   string
+	InitGit       bool
+	Database      string
+	GoVersion     string
+	IncludeDocker bool
 }
 
 func PromptNewProject() (*ProjectConfig, error) {
@@ -31,13 +32,11 @@ func PromptNewProject() (*ProjectConfig, error) {
 		Selected: "Selected: {{ . | green }}",
 	}
 
-	// Prompt for project type
+	// Prompt for project type (API only)
 	projectTypePrompt := promptui.Select{
 		Label: "Select project type",
 		Items: []string{
 			fmt.Sprintf("%s - %s", constants.ProjectTypeAPI, constants.ProjectTypeDescriptions[constants.ProjectTypeAPI]),
-			fmt.Sprintf("%s - %s", constants.ProjectTypeCLI, constants.ProjectTypeDescriptions[constants.ProjectTypeCLI]),
-			fmt.Sprintf("%s - %s", constants.ProjectTypeLibrary, constants.ProjectTypeDescriptions[constants.ProjectTypeLibrary]),
 		},
 		Templates: selectTemplate,
 	}
@@ -87,25 +86,33 @@ func PromptNewProject() (*ProjectConfig, error) {
 	}
 	config.InitGit = gitChoice == "Yes"
 
-	// Prompt for database (API projects only)
-	if config.ProjectType == constants.ProjectTypeAPI {
-		dbPrompt := promptui.Select{
-			Label: "Select database",
-			Items: []string{
-				fmt.Sprintf("%s - %s", constants.DatabaseMongoDB, constants.DatabaseDescriptions[constants.DatabaseMongoDB]),
-				fmt.Sprintf("%s - %s", constants.DatabasePostgreSQL, constants.DatabaseDescriptions[constants.DatabasePostgreSQL]),
-				fmt.Sprintf("%s - %s", constants.DatabaseNone, constants.DatabaseDescriptions[constants.DatabaseNone]),
-			},
-			Templates: selectTemplate,
-		}
-		_, dbChoice, err := dbPrompt.Run()
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", errors.ErrPromptFailed, err)
-		}
-		config.Database = strings.Split(dbChoice, " - ")[0]
-	} else {
-		config.Database = constants.DatabaseNone
+	// Prompt for Docker support
+	dockerPrompt := promptui.Select{
+		Label:     "Include Docker support? (Dockerfile and docker-compose.yml)",
+		Items:     []string{"Yes", "No"},
+		Templates: selectTemplate,
 	}
+	_, dockerChoice, err := dockerPrompt.Run()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errors.ErrPromptFailed, err)
+	}
+	config.IncludeDocker = dockerChoice == "Yes"
+
+	// Prompt for database
+	dbPrompt := promptui.Select{
+		Label: "Select database",
+		Items: []string{
+			fmt.Sprintf("%s - %s", constants.DatabaseMongoDB, constants.DatabaseDescriptions[constants.DatabaseMongoDB]),
+			fmt.Sprintf("%s - %s", constants.DatabasePostgreSQL, constants.DatabaseDescriptions[constants.DatabasePostgreSQL]),
+			fmt.Sprintf("%s - %s", constants.DatabaseNone, constants.DatabaseDescriptions[constants.DatabaseNone]),
+		},
+		Templates: selectTemplate,
+	}
+	_, dbChoice, err := dbPrompt.Run()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errors.ErrPromptFailed, err)
+	}
+	config.Database = strings.Split(dbChoice, " - ")[0]
 
 	return config, nil
 }
