@@ -38,13 +38,12 @@ func ScaffoldProject(config *prompts.ProjectConfig) error {
 		return fmt.Errorf("unsupported project type: %s", config.ProjectType)
 	}
 
+	// Generate go.mod and go.sum
+	if err := generateGoSum(projectDir, config); err != nil {
+		return fmt.Errorf("failed to generate go.mod and go.sum: %v", err)
+	}
+
 	// Write common files
-	if err := renderTemplate("common/go.mod.tmpl", filepath.Join(projectDir, "go.mod"), config); err != nil {
-		return err
-	}
-	if err := generateGoSum(projectDir); err != nil {
-		return fmt.Errorf("failed to generate go.sum: %v", err)
-	}
 	if err := renderTemplate("common/gitignore.tmpl", filepath.Join(projectDir, ".gitignore"), config); err != nil {
 		return err
 	}
@@ -101,7 +100,7 @@ func scaffoldAPI(projectDir string, config *prompts.ProjectConfig) error {
 
 	// Write Dockerfile if database is selected
 	if config.Database != constants.DatabaseNone {
-		dockerfileContent := fmt.Sprintf(`FROM golang:1.23
+		dockerfileContent := fmt.Sprintf(`FROM golang:%s
 WORKDIR /app
 COPY go.mod go.sum .
 RUN go mod download
@@ -109,7 +108,7 @@ COPY . .
 RUN go build -o %s ./cmd/%s
 EXPOSE 8080
 CMD ["./%s"]
-`, config.ProjectName, config.ProjectName, config.ProjectName)
+`, config.GoVersion, config.ProjectName, config.ProjectName, config.ProjectName)
 		if err := utils.WriteFile(filepath.Join(projectDir, "Dockerfile"), dockerfileContent); err != nil {
 			return err
 		}
@@ -168,12 +167,45 @@ func renderTemplate(templateName, outputPath string, config *prompts.ProjectConf
 	return nil
 }
 
-func generateGoSum(projectDir string) error {
-	cmd := exec.Command("go", "mod", "tidy")
+func generateGoSum(projectDir string, config *prompts.ProjectConfig) error {
+	// Initialize go.mod
+	cmd := exec.Command("go", "mod", "init", config.PackageName)
 	cmd.Dir = projectDir
-	output, err := cmd.CombinedOutput()
-	if err != nil {
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to run 'go mod init %s' in %s: %v\nOutput: %s", config.PackageName, projectDir, err, string(output))
+	}
+
+	// Add dependencies based on project type and database
+	var cmds [][]string
+	if config.ProjectType == constants.ProjectTypeAPI {
+		cmds = append(cmds,
+			[]string{"go", "get", "github.com/gorilla/mux"},
+			[]string{"go", "get", "github.com/joho/godotenv"},
+		)
+		if config.Database == constants.DatabaseMongoDB {
+			cmds = append(cmds, []string{"go", "get", "go.mongodb.org/mongo-driver/mongo"})
+		} else if config.Database == constants.DatabasePostgreSQL {
+			cmds = append(cmds, []string{"go", "get", "github.com/lib/pq"})
+		}
+	} else if config.ProjectType == constants.ProjectTypeCLI {
+		cmds = append(cmds, []string{"go", "get", "github.com/spf13/cobra"})
+	}
+
+	// Run go get commands
+	for _, cmdArgs := range cmds {
+		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		cmd.Dir = projectDir
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to run '%s' in %s: %v\nOutput: %s", strings.Join(cmdArgs, " "), projectDir, err, string(output))
+		}
+	}
+
+	// Run go mod tidy to generate go.sum
+	cmd = exec.Command("go", "mod", "tidy")
+	cmd.Dir = projectDir
+	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to run 'go mod tidy' in %s: %v\nOutput: %s", projectDir, err, string(output))
 	}
+
 	return nil
 }

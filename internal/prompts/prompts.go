@@ -3,6 +3,7 @@ package prompts
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -16,6 +17,7 @@ type ProjectConfig struct {
 	PackageName string
 	InitGit     bool
 	Database    string
+	GoVersion   string
 }
 
 func PromptNewProject() (*ProjectConfig, error) {
@@ -71,6 +73,8 @@ func PromptNewProject() (*ProjectConfig, error) {
 		return nil, fmt.Errorf("%w: %v", errors.ErrPromptFailed, err)
 	}
 
+	config.GoVersion = strings.TrimPrefix(runtime.Version(), "go")
+
 	// Prompt for Git initialization
 	gitPrompt := promptui.Select{
 		Label:     "Initialize Git repository?",
@@ -88,9 +92,9 @@ func PromptNewProject() (*ProjectConfig, error) {
 		dbPrompt := promptui.Select{
 			Label: "Select database",
 			Items: []string{
-				fmt.Sprintf("%s - %s", constants.DatabasePostgreSQL, constants.ProjectTypeDescriptions[constants.ProjectTypeAPI]),
-				fmt.Sprintf("%s - %s", constants.DatabaseMongoDB, constants.ProjectTypeDescriptions[constants.ProjectTypeCLI]),
-				fmt.Sprintf("%s - %s", constants.DatabaseNone, constants.ProjectTypeDescriptions[constants.ProjectTypeLibrary]),
+				fmt.Sprintf("%s - %s", constants.DatabaseMongoDB, constants.DatabaseDescriptions[constants.DatabaseMongoDB]),
+				fmt.Sprintf("%s - %s", constants.DatabasePostgreSQL, constants.DatabaseDescriptions[constants.DatabasePostgreSQL]),
+				fmt.Sprintf("%s - %s", constants.DatabaseNone, constants.DatabaseDescriptions[constants.DatabaseNone]),
 			},
 			Templates: selectTemplate,
 		}
