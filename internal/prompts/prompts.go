@@ -21,24 +21,23 @@ type ProjectConfig struct {
 	IncludeDocker bool
 }
 
-func PromptNewProject() (*ProjectConfig, error) {
-	config := &ProjectConfig{}
-
-	// Custom select template for better UX
-	selectTemplate := &promptui.SelectTemplates{
+func newSelectTemplate(label string) *promptui.SelectTemplates {
+	return &promptui.SelectTemplates{
 		Label:    "{{ . }}",
 		Active:   "> {{ . | cyan }}",
 		Inactive: "  {{ . | white }}",
-		Selected: "Selected: {{ . | green }}",
+		Selected: fmt.Sprintf("%s: {{ . | green }}", label),
 	}
+}
+
+func PromptNewProject() (*ProjectConfig, error) {
+	config := &ProjectConfig{}
 
 	// Prompt for project type (API only)
 	projectTypePrompt := promptui.Select{
-		Label: "Select project type",
-		Items: []string{
-			fmt.Sprintf("%s - %s", constants.ProjectTypeAPI, constants.ProjectTypeDescriptions[constants.ProjectTypeAPI]),
-		},
-		Templates: selectTemplate,
+		Label:     "Select project type",
+		Items:     []string{fmt.Sprintf("%s - %s", constants.ProjectTypeAPI, constants.ProjectTypeDescriptions[constants.ProjectTypeAPI])},
+		Templates: newSelectTemplate("Select project type"),
 	}
 	_, projectType, err := projectTypePrompt.Run()
 	if err != nil {
@@ -78,7 +77,7 @@ func PromptNewProject() (*ProjectConfig, error) {
 	gitPrompt := promptui.Select{
 		Label:     "Initialize Git repository?",
 		Items:     []string{"Yes", "No"},
-		Templates: selectTemplate,
+		Templates: newSelectTemplate("Initialize Git repository?"),
 	}
 	_, gitChoice, err := gitPrompt.Run()
 	if err != nil {
@@ -90,7 +89,7 @@ func PromptNewProject() (*ProjectConfig, error) {
 	dockerPrompt := promptui.Select{
 		Label:     "Include Docker support? (Dockerfile and docker-compose.yml)",
 		Items:     []string{"Yes", "No"},
-		Templates: selectTemplate,
+		Templates: newSelectTemplate("Include Docker support? (Dockerfile and docker-compose.yml)"),
 	}
 	_, dockerChoice, err := dockerPrompt.Run()
 	if err != nil {
@@ -106,7 +105,7 @@ func PromptNewProject() (*ProjectConfig, error) {
 			fmt.Sprintf("%s - %s", constants.DatabasePostgreSQL, constants.DatabaseDescriptions[constants.DatabasePostgreSQL]),
 			fmt.Sprintf("%s - %s", constants.DatabaseNone, constants.DatabaseDescriptions[constants.DatabaseNone]),
 		},
-		Templates: selectTemplate,
+		Templates: newSelectTemplate("Select database"),
 	}
 	_, dbChoice, err := dbPrompt.Run()
 	if err != nil {
