@@ -13,24 +13,42 @@ import (
 	"github.com/shubhamoys/forgego/internal/utils"
 )
 
+// forgegoBanner is the ASCII art for "forgego"
+const forgegoBanner = `
+fffff     o     rrrrr   ggggg   eeeee   ggggg     o  
+f        o o    r   r   g   g   e       g   g    o o 
+f       o   o   rrrrr   g       e       g       o   o
+fffff   o   o   rr      g ggg   eeeee   g ggg   o   o
+f       o   o   r r     g   g   e       g   g   o   o
+f        o o    r  r    g   g   e       g   g    o o 
+f         o     r   r   ggggg   eeeee   ggggg     o  
+`
+
 func ScaffoldProject(config *prompts.ProjectConfig) error {
+	// Print the forgego banner
+	fmt.Println(forgegoBanner)
+
 	// Create project directory
 	projectDir := config.ProjectName
+	fmt.Printf("📁 Creating project directory: %s\n", projectDir)
 	if err := utils.CreateDir(projectDir); err != nil {
 		return err
 	}
 
 	// Generate folder structure for API project
+	fmt.Println("🛠️  Scaffolding API project structure...")
 	if err := scaffoldAPI(projectDir, config); err != nil {
 		return err
 	}
 
 	// Generate go.mod and go.sum
+	fmt.Println("📦 Generating go.mod and go.sum...")
 	if err := generateGoSum(projectDir, config); err != nil {
 		return fmt.Errorf("failed to generate go.mod and go.sum: %v", err)
 	}
 
 	// Write common files
+	fmt.Println("✍️  Writing common files (.gitignore, README.md)...")
 	if err := renderTemplate("common/gitignore.tmpl", filepath.Join(projectDir, ".gitignore"), config); err != nil {
 		return err
 	}
@@ -40,11 +58,13 @@ func ScaffoldProject(config *prompts.ProjectConfig) error {
 
 	// Initialize Git repository if requested
 	if config.InitGit {
+		fmt.Println("🌿 Initializing Git repository...")
 		if err := utils.InitGit(projectDir); err != nil {
 			return err
 		}
 	}
 
+	fmt.Println("✅ Project scaffolding completed successfully!")
 	return nil
 }
 
@@ -67,6 +87,7 @@ func scaffoldAPI(projectDir string, config *prompts.ProjectConfig) error {
 	}
 
 	// Write API-specific files
+	fmt.Println("📝 Writing API-specific files...")
 	if err := renderTemplate("api/main.go.tmpl", filepath.Join(projectDir, "cmd", config.ProjectName, "main.go"), config); err != nil {
 		return err
 	}
@@ -87,6 +108,7 @@ func scaffoldAPI(projectDir string, config *prompts.ProjectConfig) error {
 
 	// Write Docker files if requested
 	if config.IncludeDocker {
+		fmt.Println("🐳 Generating Docker files...")
 		dockerfileContent := fmt.Sprintf(`FROM golang:%s
 WORKDIR /app
 COPY go.mod go.sum .
@@ -133,6 +155,7 @@ func renderTemplate(templateName, outputPath string, config *prompts.ProjectConf
 
 func generateGoSum(projectDir string, config *prompts.ProjectConfig) error {
 	// Initialize go.mod
+	fmt.Printf("📦 Initializing go.mod with module: %s\n", config.PackageName)
 	cmd := exec.Command("go", "mod", "init", config.PackageName)
 	cmd.Dir = projectDir
 	if output, err := cmd.CombinedOutput(); err != nil {
@@ -140,6 +163,7 @@ func generateGoSum(projectDir string, config *prompts.ProjectConfig) error {
 	}
 
 	// Add API dependencies
+	fmt.Println("📥 Installing dependencies...")
 	cmds := [][]string{
 		{"go", "get", "github.com/gorilla/mux"},
 		{"go", "get", "github.com/joho/godotenv"},
@@ -152,6 +176,7 @@ func generateGoSum(projectDir string, config *prompts.ProjectConfig) error {
 
 	// Run go get commands
 	for _, cmdArgs := range cmds {
+		fmt.Printf("📦 Running: %s\n", strings.Join(cmdArgs, " "))
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 		cmd.Dir = projectDir
 		if output, err := cmd.CombinedOutput(); err != nil {
@@ -160,6 +185,7 @@ func generateGoSum(projectDir string, config *prompts.ProjectConfig) error {
 	}
 
 	// Run go mod tidy to generate go.sum
+	fmt.Println("🧹 Running go mod tidy...")
 	cmd = exec.Command("go", "mod", "tidy")
 	cmd.Dir = projectDir
 	if output, err := cmd.CombinedOutput(); err != nil {
